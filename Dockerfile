@@ -78,14 +78,35 @@ RUN set -ex \
 COPY script/entrypoint.sh /entrypoint.sh
 COPY config/airflow.cfg ${AIRFLOW_USER_HOME}/airflow.cfg
 
+RUN sed -i "s/^exit 101$/exit 0/" /usr/sbin/policy-rc.d
+RUN apt-get update \
+		&& apt-get install -y --no-install-recommends dialog \
+        && apt-get update \
+	&& apt-get install -y --no-install-recommends openssh-server \
+	&& echo "root:Docker!" | chpasswd
+
+COPY sshd_config /etc/ssh/
+ENV SSH_PORT 2222
+
 RUN chmod 777 /entrypoint.sh
+RUN chmod -R 777 /etc/profile
+RUN chmod -R 777 /etc
+RUN chmod -R 400 /etc/ssh
+RUN chmod -R 400 /run
+RUN chmod -R 777 /var
+
+COPY ssh_setup.sh /tmp
+RUN chmod -R +x /tmp/ssh_setup.sh \
+   && (sleep 1;/tmp/ssh_setup.sh 2>&1 > /dev/null) \
+   && rm -rf /tmp/*
+
 RUN chmod 777 ${AIRFLOW_USER_HOME}/airflow.cfg
 
 #RUN chown -R airflow: ${AIRFLOW_USER_HOME}
 
 EXPOSE 8080 5555 8793
 
-USER airflow
+USER root
 WORKDIR ${AIRFLOW_USER_HOME}
 ENTRYPOINT ["/entrypoint.sh"]
 CMD ["webserver"]

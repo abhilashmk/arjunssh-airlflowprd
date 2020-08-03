@@ -1,4 +1,10 @@
 #!/usr/bin/env bash
+eval $(printenv | sed -n "s/^\([^=]\+\)=\(.*\)$/export \1=\2/p" | sed 's/"/\\\"/g' | sed '/=/s//="/' | sed 's/$/"/' >> /etc/profile)
+
+
+echo "Starting SSH ..."
+sed -i "s/SSH_PORT/$SSH_PORT/g" /etc/ssh/sshd_config
+/usr/sbin/sshd
 
 TRY_LOOP="20"
 
